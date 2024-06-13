@@ -3,7 +3,7 @@ export const MEDIA_TYPE_NAMES = ["VIDEO", "IMAGE", "FILE"];
 export const MODEL_NAMES = {
   POSTS: "Posts",
   USERS: "Users",
-  COMMENTS: "Comment",
+  COMMENTS: "Comments",
   TAGS: "Tags",
   ERROR_LOGS: "ErrorLog",
   MEDIA: "Media",

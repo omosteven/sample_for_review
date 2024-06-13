@@ -12,6 +12,8 @@ const config = (key: string) => {
       api_key: process.env.CLOUDINARY_API_KEY,
       api_secret: process.env.CLOUDINARY_SECRET_KEY,
     },
+
+    port: process.env.PORT,
   };
 
   return configKeys[key];

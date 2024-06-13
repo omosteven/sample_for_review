@@ -385,7 +385,9 @@ class PostsController {
       }
 
       // --- Check if the user has already liked the post ---
-      const findUserLikedIndex = post.likes.findIndex((id) => id === userId);
+      const findUserLikedIndex = post.likes.findIndex(
+        (id) => id.toString() === userId.toString()
+      );
 
       if (findUserLikedIndex === -1) {
         // --- if the user has not liked post ---
