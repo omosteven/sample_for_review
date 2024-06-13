@@ -112,8 +112,8 @@ class Helpers {
     return ObjectId.isValid(id) && new ObjectId(id).toString() === id;
   }
 
-  isStringEmpty(content: any): boolean {
-    if (typeof content === "string" && content.trim().length > 0) {
+  isStringEmpty(content: any, minLength: number = 0): boolean {
+    if (typeof content === "string" && content.trim().length > minLength) {
       return false;
     } else {
       return true;

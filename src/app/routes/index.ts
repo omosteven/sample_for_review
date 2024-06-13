@@ -45,6 +45,12 @@ const routes: RouteDefinition[] = [
     controller: controllers.auth.register,
   },
   {
+    route: "/auth/change-password",
+    method: "put",
+    requireAuth: true,
+    controller: () => {},
+  },
+  {
     route: "/user/me",
     method: "get",
     requireAuth: true,

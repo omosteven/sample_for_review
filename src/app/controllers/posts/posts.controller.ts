@@ -32,7 +32,7 @@ class PostsController {
 
     try {
       // --- check if content contains value or not ---
-      if (!helpers.isStringEmpty(content)) {
+      if (helpers.isStringEmpty(content)) {
         return responseHandlers.error(res, "Content cannot be empty");
       }
 
@@ -417,7 +417,7 @@ class PostsController {
 
     try {
       // --- check if tag is passed or not ---
-      if (!helpers.isStringEmpty(tagName)) {
+      if (helpers.isStringEmpty(tagName)) {
         return responseHandlers.error(res, "Invalid Tag");
       }
 

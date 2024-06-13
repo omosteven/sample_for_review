@@ -125,12 +125,6 @@ class AuthController {
   async sendOtp(req: Request, res: Response) {}
 
   async verifyOtp(req: Request, res: Response) {}
-
-  async updatePassword(req: Request, res: Response) {
-    const { newPassword }: IUpdatePassword = req.body;
-
-    // console.log('req', req?.user);
-  }
 }
 
 export default AuthController;

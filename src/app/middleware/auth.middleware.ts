@@ -6,6 +6,10 @@ import config from "../../config/config";
 
 import UsersModel from "../models/users/users.model";
 
+import Helpers from "../helpers";
+
+const helpers = new Helpers();
+
 const auth = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
@@ -37,14 +41,53 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
         ---
     **/
 
-    const fetchUser = await UsersModel.findById(decodedToken?.userId).select(
-      "token"
+    const fetchedUser = await UsersModel.findById(decodedToken?.userId).select(
+      "token password"
     );
 
-    if (fetchUser?.token !== token) {
+    if (fetchedUser?.token !== token) {
       return res.status(401).json({
         code: 401,
         message: "Unauthorized: invalid Token",
+      });
+    }
+
+    // --- only run if the user is on this route ---
+    if (req.route.path === "/auth/change-password") {
+      const { oldPassword, newPassword } = req.body || {};
+      if (
+        helpers.isStringEmpty(oldPassword, 7) ||
+        helpers.isStringEmpty(newPassword, 7)
+      ) {
+        return res.status(401).json({
+          code: 401,
+          message:
+            "One or both passwords are missing or not up to 8 characters",
+        });
+      }
+
+      // --- compare the found user's password with the inputed password ---
+      const doPasswordsMatch = await helpers.comparePasswords(
+        oldPassword,
+        fetchedUser.password
+      );
+
+      if (!doPasswordsMatch) {
+        return res.status(401).json({
+          code: 401,
+          message: "Incorrect old password",
+        });
+      }
+
+      const hashedPassword = helpers.hashPassword(newPassword);
+
+      fetchedUser.password = hashedPassword;
+
+      fetchedUser.save();
+
+      return res.status(201).json({
+        code: 201,
+        message: "Password updated successfully",
       });
     }
 

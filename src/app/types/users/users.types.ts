@@ -44,4 +44,5 @@ export interface IUserId {
 
 export interface IUpdatePassword {
   newPassword: string;
+  oldPassword: string;
 }

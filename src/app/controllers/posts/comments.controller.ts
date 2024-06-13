@@ -28,7 +28,7 @@ class CommentsController {
 
     try {
       // --- check if content is empty or not ---
-      if (!helpers.isStringEmpty(content)) {
+      if (helpers.isStringEmpty(content)) {
         return responseHandlers.error(res, "Please add a comment content");
       }
 
@@ -85,7 +85,7 @@ class CommentsController {
 
     try {
       // --- check if  the content has value ---
-      if (!helpers.isStringEmpty(content)) {
+      if (helpers.isStringEmpty(content)) {
         return responseHandlers.error(res, "Comment cannot be empty");
       }
 
