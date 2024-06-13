@@ -20,7 +20,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(bodyParser.json());
 
-app.use("/api/v1", appRoutes);
+app.use("/api/v1", appRoutes());
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Welcome to Voltrox Nject Backend App!");

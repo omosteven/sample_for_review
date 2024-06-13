@@ -133,15 +133,23 @@ class CommentsController {
 
       // --- we assume the comment was made by the user ---
       // --- checking separately if it was made by the user using another query operation  will increase the request time ---
-      const commentToDelete = await CommentsModel.deleteOne({
+      const deletedComment = await CommentsModel.findOneAndDelete({
         _id: commentId,
         user: userId,
-      });
+      }).select("post");
 
       // --- was there a successful  delete operation? ---
-      if (commentToDelete.deletedCount === 0) {
+      if (!deletedComment) {
         return responseHandlers.error(res, "Failed to delete comment");
       }
+
+      const postId = deletedComment.post;
+
+      // --- decrement the noOfComments key by 1---
+      await PostsModel.updateOne(
+        { _id: postId },
+        { $inc: { noOfComments: -1 } } // decrement by 1
+      );
 
       return responseHandlers.success(
         res,
