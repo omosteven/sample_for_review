@@ -1,16 +1,14 @@
-import { Schema, model, Document } from "mongoose";
+import { Schema, model } from "mongoose";
 
 import { MODEL_NAMES } from "../../enums";
+
+import { ICommentModel } from "../../types/posts/posts.types";
+
+import commentsModelHook from "../../hooks/comments.model.hook";
 
 const { ObjectId, String } = Schema.Types;
 
 const { COMMENTS, USERS, POSTS } = MODEL_NAMES;
-
-interface IComment extends Document {
-  post: string;
-  user: string;
-  content: string;
-}
 
 const commentsSchema = new Schema(
   {
@@ -41,6 +39,8 @@ const commentsSchema = new Schema(
   }
 );
 
-const CommentsModel = model<IComment>(COMMENTS, commentsSchema);
+commentsModelHook(commentsSchema);
+
+const CommentsModel = model<ICommentModel>(COMMENTS, commentsSchema);
 
 export default CommentsModel;

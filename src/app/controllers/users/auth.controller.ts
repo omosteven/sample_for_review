@@ -20,14 +20,6 @@ const helpers = new Helpers();
 
 const responseHandlers = new ResponseHandler();
 
-/**
-  @param {Request} req
-  
-  @param {Response}  res
-
-  @returns
-**/
-
 class AuthController {
   // -- login -- function
   async login(req: Request, res: Response) {
@@ -69,11 +61,12 @@ class AuthController {
       // --- update the user auth token of the user in their respective record ---
       await UsersModel.updateOne({ email }, { token: newToken });
 
-      // Convert the user document to an object
-      // let { password:_, ...rest } = user;
-      user.token = newToken;
+      // -- destructure and exclude the password from the object --
+      const { password: _, ...updatedUser } = user.toObject();
+      updatedUser.token = newToken;
+
       // --- respond back ---
-      return responseHandlers.success(res, user, "Login successful");
+      return responseHandlers.success(res, updatedUser, "Login successful");
     } catch (error) {
       return await responseHandlers.mongoError(req, res, error, USERS);
     }
@@ -122,6 +115,7 @@ class AuthController {
     }
   }
 
+  // --- this will be nice features to have ---
   async sendOtp(req: Request, res: Response) {}
 
   async verifyOtp(req: Request, res: Response) {}

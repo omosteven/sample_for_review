@@ -1,23 +1,14 @@
-import { Schema, model, Document } from "mongoose";
+import { Schema, model } from "mongoose";
 
 import { MODEL_NAMES, MEDIA_TYPE_NAMES } from "../../enums";
+
+import { IPostModel } from "../../types/posts/posts.types";
+
+import postsModelHook from "../../hooks/posts.model.hook";
 
 const { ObjectId, String } = Schema.Types;
 
 const { USERS, POSTS } = MODEL_NAMES;
-
-interface IPost extends Document {
-  content: string;
-  madeBy: string;
-  mediaUrl?: string;
-  mediaType?: string;
-  canBeLiked: boolean;
-  allowsComments: boolean;
-  tags: string[];
-  likes: string[];
-  noOfLikes: number;
-  noOfComments: number;
-}
 
 const postsSchema = new Schema(
   {
@@ -93,6 +84,8 @@ const postsSchema = new Schema(
   }
 );
 
-const PostsModel = model<IPost>(POSTS, postsSchema);
+postsModelHook(postsSchema);
+
+const PostsModel = model<IPostModel>(POSTS, postsSchema);
 
 export default PostsModel;

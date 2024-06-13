@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
-const enums_1 = require("app/enums");
+const enums_1 = require("../../enums");
 const { String } = mongoose_1.Schema.Types;
 const { USERS } = enums_1.MODEL_NAMES;
 const usersSchema = new mongoose_1.Schema({
@@ -20,7 +20,7 @@ const usersSchema = new mongoose_1.Schema({
         type: String,
         required: true,
     },
-    profilePicture: {
+    picture: {
         type: String,
         default: "",
     },

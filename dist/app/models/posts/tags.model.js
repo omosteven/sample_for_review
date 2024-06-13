@@ -1,12 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
-const enums_1 = require("app/enums");
+const enums_1 = require("../../enums");
 const { String, ObjectId } = mongoose_1.Schema.Types;
 const { TAGS, POSTS } = enums_1.MODEL_NAMES;
 const tagsSchema = new mongoose_1.Schema({
     tagName: {
         type: String,
+        unique: true,
         required: true,
     },
     posts: [

@@ -18,6 +18,7 @@ Objective: Implement a basic backend system for a user profile and social media 
 - Search posts by tags
 - General user authentication and authorization
 - Logging of user errors
+- Realtime updates on posts and comments
 
 ## Technologies Used
 
@@ -28,6 +29,7 @@ Objective: Implement a basic backend system for a user profile and social media 
 - JWT (JSON Web Token)
 - TypeScript
 - Bcrypt
+- SocketIO
 
 ## Getting Started
 
@@ -72,11 +74,22 @@ Start the MongoDB server if it's not already running:
 ```bash
 mongod
 ```
+Build the app:
+
+```bash
+npm run build
+```
 
 Run the app:
 
 ```bash
 npm run dev
+```
+
+or
+
+```bash
+nodemon
 ```
 
 The server should be running on `http://localhost:3000`.
@@ -111,6 +124,21 @@ The server should be running on `http://localhost:3000`.
 - **PUT** `/posts/comments/:commentId`: Edit a post comment (requires JWT)
 - **DELETE** `/posts/comments/:commentId`: Delete a post comment (requires JWT)
 - **GET** `/posts/comments/:postId`: Fetch all post comments (requires JWT)
+
+## Socket Events
+
+- **POST_UPDATE** : Triggers real time update such as new like, new comment on any post
+- **NEW_POST_CREATION** : Triggers  when a new post is created
+- **POST_REMOVAL** : Triggers when a post is deleted
+- **NEW_POST_COMMENT** : Triggers when a comment is added to a post. It returns the comment and respective postId
+- **POST_COMMENT_UPDATE** : Triggers when a comment is updated
+- **POST_COMMENT_REMOVAL** - Triggers when a comment is deleted
+
+## Note
+The data returned from each socket event are not full (because of optimization) but enough for to use to make update on the client
+
+## Note
+The path alias is not recognized. It will be fixed soon
 
 ## Usage
 
@@ -148,6 +176,9 @@ curl -X GET http://localhost:3000/user/me -H "Authorization: Bearer <your_jwt_to
 │   │   │   │   ├── posts.controller.ts
 │   │   │   │   ├── comments.controller.ts
 │   │   │   │   ├── tags.controller.ts
+│   │   ├── hooks
+│   │   │   │   ├── comments.model.hook.ts
+│   │   │   │   ├── posts.model.hook.ts
 │   │   ├── middleware
 │   │   │   ├── auth.middleware.ts
 │   │   ├── models
@@ -178,9 +209,18 @@ curl -X GET http://localhost:3000/user/me -H "Authorization: Bearer <your_jwt_to
 │   │   │   │   ├── posts.types.ts
 │   │   ├── ├── helpers
 │   │   │   │   ├── helpers.types.ts
+│   │   ├── utils
+│   │   ├── ├── resp-handlers
+│   │   │   │   ├── index.ts
 │   ├── config
 │   │   ├── config.ts
 │   │   ├── database.ts
+│   ├── socket
+│   │   ├── events
+│   │   ├── ├── index.ts
+│   │   ├── middlewares
+│   │   ├── ├── socketAuth.middleware.ts
+│   │   ├── index.ts
 │   ├── server.ts
 ├── package.json
 ├── tsconfig.json
@@ -203,7 +243,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-For any questions or feedback, please contact [omosteven123@gmail.com](mailto:your-email@example.com).
+For any questions or feedback, please contact [omosteven123@gmail.com](mailto:omosteven123@gmail.com).
 
 ---
 

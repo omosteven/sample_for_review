@@ -1,9 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 
-import jwt from "jsonwebtoken";
-
-import config from "../../config/config";
-
 import UsersModel from "../models/users/users.model";
 
 import Helpers from "../helpers";
@@ -30,10 +26,7 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
       });
     }
 
-    const decodedToken = jwt.verify(token, config("jwt_key")) as {
-      userId: string;
-      email: string;
-    };
+    const decodedToken = helpers.validateToken(token);
 
     /*  --- 
         this operation below will run at a constant time O(1), 
@@ -95,7 +88,6 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
 
     next();
   } catch (error) {
-    console.error("Authentication Error:", error);
     return res.status(401).json({
       code: 401,
       message: "Unauthorized",

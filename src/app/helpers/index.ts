@@ -40,8 +40,7 @@ class Helpers {
 
   validatePayloads(
     payloads: any,
-    validators: string[],
-    rules?: object
+    validators: string[]
   ): IValidatePayloadResponse {
     let isValid = true;
 
@@ -118,6 +117,13 @@ class Helpers {
     } else {
       return true;
     }
+  }
+
+  validateToken(token: string) {
+    return jwt.verify(token, config("jwt_key")) as {
+      userId: string;
+      email: string;
+    };
   }
 }
 

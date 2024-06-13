@@ -8,59 +8,66 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const users_model_1 = __importDefault(require("app/models/users/users.model"));
-const helpers_1 = __importDefault(require("app/helpers"));
+const users_model_1 = __importDefault(require("../../models/users/users.model"));
+const helpers_1 = __importDefault(require("../../helpers"));
+const resp_handlers_1 = __importDefault(require("../../utils/resp-handlers"));
+const enums_1 = require("../../enums");
+const { USERS } = enums_1.MODEL_NAMES;
 const helpers = new helpers_1.default();
-/**
-  @param {Request} req
-  
-  @param {Response}  res
-
-  @returns
-**/
+const responseHandlers = new resp_handlers_1.default();
 class AuthController {
     // -- login -- function
     login(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             const { email, password } = req.body;
-            // --- wrap the DB queries inside try and catch to catch  errors
+            // --- wrap the DB queries inside try and catch to catch  errors  ---
             try {
-                const user = yield users_model_1.default.findOne({ email });
-                // --- check if a  user  is found or not
-                if (!user) {
-                    return res.status(400).json({
-                        code: 400,
-                        message: "Email or password invalid",
-                    });
+                // --- check if the payloads pass the neccessary validations ---
+                const { isValid, errorMessage } = helpers.validatePayloads(req.body, [
+                    "email",
+                    "password",
+                ]);
+                if (!isValid) {
+                    return responseHandlers.error(res, errorMessage);
                 }
-                // --- compare the found user's password with the inputed password
+                // --- retrive the user details by the email ---
+                const user = yield users_model_1.default.findOne({ email });
+                // --- check if a user  is found or not
+                if (!user) {
+                    return responseHandlers.error(res, "Email or password invalid");
+                }
+                // --- compare the found user's password with the inputed password ---
                 const doPasswordsMatch = yield helpers.comparePasswords(password, user.password);
                 if (!doPasswordsMatch) {
-                    return res.status(400).json({
-                        code: 400,
-                        message: "Email or password invalid",
-                    });
+                    return responseHandlers.error(res, "Email or password invalid");
                 }
-                // --- generate a user token for  the user ---
-                const newToken = yield helpers.generateToken(email);
-                // --- update the  user token of the user in their respective DB record ---
+                // --- generate a user auth token for  the user ---
+                const newToken = yield helpers.generateToken(email, user === null || user === void 0 ? void 0 : user._id);
+                // --- update the user auth token of the user in their respective record ---
                 yield users_model_1.default.updateOne({ email }, { token: newToken });
-                const { firstName, lastName } = user;
-                return res.status(200).json({
-                    message: "User logged in",
-                    data: { email, firstName, lastName, token: newToken },
-                });
+                // -- destructure and exclude the password from the object --
+                const _a = user.toObject(), { password: _ } = _a, updatedUser = __rest(_a, ["password"]);
+                updatedUser.token = newToken;
+                // --- respond back ---
+                return responseHandlers.success(res, updatedUser, "Login successful");
             }
             catch (error) {
-                console.error("Login Error:", error);
-                return res.status(500).json({
-                    code: 500,
-                    message: "An error occurred during login",
-                });
+                return yield responseHandlers.mongoError(req, res, error, USERS);
             }
         });
     }
@@ -69,52 +76,42 @@ class AuthController {
         return __awaiter(this, void 0, void 0, function* () {
             const { email, password, firstName, lastName } = req.body;
             try {
-                // --- check if any of the payloads is missing ---
-                if (!email || !password || !firstName || !lastName) {
-                    return res.status(400).json({
-                        code: 400,
-                        message: "Invalid payload. All fields are required.",
-                    });
+                // --- check if  the payloads pass the neccessary validations ---
+                const { isValid, errorMessage } = helpers.validatePayloads(req.body, [
+                    "email",
+                    "password",
+                    "firstName",
+                    "lastName",
+                ]);
+                if (!isValid) {
+                    return responseHandlers.error(res, errorMessage);
                 }
-                // ---  check if the password length requirement is meant
-                if (password.length < 8) {
-                    return res.status(400).json({
-                        code: 400,
-                        message: "Password must be at least 8 characters long",
-                    });
-                }
-                // const existingUser = await UsersModel.findOne({ email });
-                // if (existingUser) {
-                //   return res.status(400).json({
-                //     code: 400,
-                //     message: "Email is already in use",
-                //   });
-                // }
                 // --- hash the password before saving the new user record ---
+                // --- the purpose of hashing is to protect the password. Hashed data cannot be reversed ---
                 const hashedPassword = helpers.hashPassword(password);
+                // --- initiate the Users Model ---
                 const newUser = new users_model_1.default({
                     email,
                     firstName,
                     lastName,
                     password: hashedPassword,
                 });
-                //   --- save the user record if they pass the field requirements ---
+                //   --- save the user record if payload/field requirements are passed ---
                 yield newUser.save();
-                return res.status(201).json({
-                    code: 201,
-                    message: "Account created successfully",
-                    data: { email, firstName, lastName },
-                });
+                return responseHandlers.success(res, { email, firstName, lastName }, "Account created successfully", 201);
             }
             catch (error) {
-                // handle errors here including duplicate email for registration of any taken email ---
-                console.error("Registration Error:", error);
-                return res.status(500).json({
-                    code: 500,
-                    message: "An error occurred during registration",
-                });
+                // --- handle errors here including duplicate email for registration of any taken email ---
+                return yield responseHandlers.mongoError(req, res, error, USERS);
             }
         });
+    }
+    // --- this will be nice features to have ---
+    sendOtp(req, res) {
+        return __awaiter(this, void 0, void 0, function* () { });
+    }
+    verifyOtp(req, res) {
+        return __awaiter(this, void 0, void 0, function* () { });
     }
 }
 exports.default = AuthController;

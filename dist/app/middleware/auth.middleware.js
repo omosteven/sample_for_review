@@ -12,16 +12,68 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const config_1 = __importDefault(require("../../config/config"));
+const users_model_1 = __importDefault(require("../models/users/users.model"));
+const helpers_1 = __importDefault(require("../helpers"));
+const helpers = new helpers_1.default();
 const auth = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const token = req.headers.authorization.split(" ")[1];
-        const decodeToken = jsonwebtoken_1.default.verify(token, (0, config_1.default)("jwt_key"));
-        req.body = Object.assign(Object.assign({}, req.body), { user: decodeToken });
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return res.status(401).json({
+                code: 401,
+                message: "Authorization header missing",
+            });
+        }
+        const token = authHeader.split(" ")[1];
+        if (!token) {
+            return res.status(401).json({
+                code: 401,
+                message: "Token missing",
+            });
+        }
+        const decodedToken = helpers.validateToken(token);
+        /*  ---
+            this operation below will run at a constant time O(1),
+            thus it will not have much effect on the time complexity of this middleware
+            ---
+        **/
+        const fetchedUser = yield users_model_1.default.findById(decodedToken === null || decodedToken === void 0 ? void 0 : decodedToken.userId).select("token password");
+        if ((fetchedUser === null || fetchedUser === void 0 ? void 0 : fetchedUser.token) !== token) {
+            return res.status(401).json({
+                code: 401,
+                message: "Unauthorized: invalid Token",
+            });
+        }
+        // --- only run if the user is on this route ---
+        if (req.route.path === "/auth/change-password") {
+            const { oldPassword, newPassword } = req.body || {};
+            if (helpers.isStringEmpty(oldPassword, 7) ||
+                helpers.isStringEmpty(newPassword, 7)) {
+                return res.status(401).json({
+                    code: 401,
+                    message: "One or both passwords are missing or not up to 8 characters",
+                });
+            }
+            // --- compare the found user's password with the inputed password ---
+            const doPasswordsMatch = yield helpers.comparePasswords(oldPassword, fetchedUser.password);
+            if (!doPasswordsMatch) {
+                return res.status(401).json({
+                    code: 401,
+                    message: "Incorrect old password",
+                });
+            }
+            const hashedPassword = helpers.hashPassword(newPassword);
+            fetchedUser.password = hashedPassword;
+            fetchedUser.save();
+            return res.status(201).json({
+                code: 201,
+                message: "Password updated successfully",
+            });
+        }
+        req.body.user = decodedToken;
         next();
     }
-    catch (e) {
+    catch (error) {
         return res.status(401).json({
             code: 401,
             message: "Unauthorized",

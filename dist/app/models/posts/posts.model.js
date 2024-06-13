@@ -1,9 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
-const enums_1 = require("app/enums");
+const enums_1 = require("../../enums");
+const posts_model_hook_1 = __importDefault(require("../../hooks/posts.model.hook"));
 const { ObjectId, String } = mongoose_1.Schema.Types;
-const { USERS, COMMENTS, POSTS } = enums_1.MODEL_NAMES;
+const { USERS, POSTS } = enums_1.MODEL_NAMES;
 const postsSchema = new mongoose_1.Schema({
     content: {
         type: String,
@@ -37,12 +41,12 @@ const postsSchema = new mongoose_1.Schema({
             ref: USERS,
         },
     ],
-    comments: [
-        {
-            type: ObjectId,
-            ref: COMMENTS,
-        },
-    ],
+    // comments: [
+    //   {
+    //     type: ObjectId,
+    //     ref: COMMENTS,
+    //   },
+    // ],
     noOfLikes: {
         type: Number,
         default: 0,
@@ -54,5 +58,6 @@ const postsSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
+(0, posts_model_hook_1.default)(postsSchema);
 const PostsModel = (0, mongoose_1.model)(POSTS, postsSchema);
 exports.default = PostsModel;
