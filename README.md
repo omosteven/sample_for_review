@@ -19,6 +19,7 @@ Objective: Implement a basic backend system for a user profile and social media 
 - General user authentication and authorization
 - Logging of user errors
 - Realtime updates on posts and comments
+- Media Upload
 
 ## Technologies Used
 
@@ -45,7 +46,7 @@ Ensure you have the following installed on your local machine:
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/auth-nodejs-app.git
+git clone https://github.com/omosteven/voltrox_engineering_task.git
 cd auth-nodejs-app
 ```
 
@@ -125,6 +126,10 @@ The server should be running on `http://localhost:3000`.
 - **DELETE** `/posts/comments/:commentId`: Delete a post comment (requires JWT)
 - **GET** `/posts/comments/:postId`: Fetch all post comments (requires JWT)
 
+## Utiliy Routes
+
+- **GET** `/media/upload`: To upload a file to cloudinary
+
 ## Socket Events
 
 - **POST_UPDATE** : Triggers real time update such as new like, new comment on any post
@@ -140,25 +145,27 @@ The data returned from each socket event are not full (because of optimization) 
 ## Note
 The path alias is not recognized. It will be fixed soon
 
-## Usage
+## Sample Usage
 
 ### Register a New User
 
 ```bash
-curl -X POST http://localhost:3000/auth/register -H "Content-Type: application/json" -d '{"email": "user@example.com", "password": "password123", "firstName": "John", "lastName": "Doe"}'
+curl -X POST http://localhost:8000/auth/register -H "Content-Type: application/json" -d '{"email": "user@example.com", "password": "password123", "firstName": "John", "lastName": "Doe"}'
 ```
 
 ### Login
 
 ```bash
-curl -X POST http://localhost:3000/auth/login -H "Content-Type: application/json" -d '{"email": "user@example.com", "password": "password123"}'
+curl -X POST http://localhost:8000/auth/login -H "Content-Type: application/json" -d '{"email": "user@example.com", "password": "password123"}'
 ```
 
 ### Get User Profile
 
 ```bash
-curl -X GET http://localhost:3000/user/me -H "Authorization: Bearer <your_jwt_token>"
+curl -X GET http://localhost:8000/user/me -H "Authorization: Bearer <your_jwt_token>"
 ```
+
+It is recommended to test with postman
 
 ## Project Structure
 
@@ -244,6 +251,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Contact
 
 For any questions or feedback, please contact [omosteven123@gmail.com](mailto:omosteven123@gmail.com).
+
+Name - Steven Omole-Adebomi
+Github - https://github.com/omosteven
 
 ---
 
