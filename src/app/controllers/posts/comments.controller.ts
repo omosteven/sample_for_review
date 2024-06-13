@@ -8,6 +8,12 @@ import CommentsModel from "../../models/posts/comments.model";
 
 import PostsModel from "../../models/posts/posts.model";
 
+import { IComment, ICommentId, IPostId } from "../../types/posts/posts.types";
+
+import { MODEL_NAMES } from "../../enums";
+
+const { COMMENTS } = MODEL_NAMES;
+
 const responseHandlers = new ResponseHandler();
 
 const helpers = new Helpers();
@@ -16,27 +22,31 @@ class CommentsController {
   async addCommentToPost(req: Request, res: Response) {
     const { userId } = req.body.user;
 
-    const { postId }: any = req.params;
+    const { postId } = req.params as unknown as IPostId;
 
-    const { content } = req.body;
+    const { content }: IComment = req.body;
 
     try {
-      // --- check if the payloads pass the neccessary validations ---
-      if (!content) {
+      // --- check if content is empty or not ---
+      if (!helpers.isStringEmpty(content)) {
         return responseHandlers.error(res, "Please add a comment content");
       }
 
+      // --- check if postId is a valid object
       if (!postId || !helpers.isObjectIdValid(postId)) {
         return responseHandlers.error(res, "Invalid post id");
       }
 
-      const post = await PostsModel.findById(postId).select("allowsComments");
+      // --- retrive the actual post and only return allowsComments, noOfComments
+      const post = await PostsModel.findById(postId).select(
+        "allowsComments noOfComments"
+      );
 
       if (!post) {
         return responseHandlers.error(res, "Post Not Found", 404);
       }
 
-      // --- perform comment authorization here ---
+      // --- perform authorization to check if the post is allowed to have comments or not ---
       if (!post.allowsComments) {
         return responseHandlers.error(
           res,
@@ -57,36 +67,29 @@ class CommentsController {
       });
 
       // --- increment number of comments ---
-      await PostsModel.updateOne(
-        {
-          _id: postId,
-        },
-        {
-          $inc: {
-            noOfComments: 1,
-          },
-        }
-      );
+      post.noOfComments++;
+      post.save();
 
       return responseHandlers.success(res, newComment, "Comment added", 201);
     } catch (error) {
-      return responseHandlers.error(res, "An error occurred", 500, error);
+      return await responseHandlers.mongoError(req, res, error, COMMENTS);
     }
   }
 
   async editCommentById(req: Request, res: Response) {
     const { userId } = req.body.user;
 
-    const { commentId }: any = req.params;
+    const { commentId } = req.params as unknown as ICommentId;
 
-    const { content } = req.body;
+    const { content }: IComment = req.body;
 
     try {
-      // --- check if  the payloads pass the neccessary validations ---
-      if (!content) {
+      // --- check if  the content has value ---
+      if (!helpers.isStringEmpty(content)) {
         return responseHandlers.error(res, "Comment cannot be empty");
       }
 
+      // --- retrive and update the comment, also populate it with the actual user performing the edit action ---
       const updatedComment = await CommentsModel.findOneAndUpdate(
         {
           _id: commentId,
@@ -114,27 +117,28 @@ class CommentsController {
         201
       );
     } catch (error) {
-      return responseHandlers.error(res, "An error occurred", 500, error);
+      return responseHandlers.mongoError(req, res, error, COMMENTS);
     }
   }
 
   async deleteCommentById(req: Request, res: Response) {
     const { userId } = req.body.user;
 
-    const { commentId }: any = req.params;
+    const { commentId } = req.params as unknown as ICommentId;
 
     try {
       if (!commentId || !helpers.isObjectIdValid(commentId)) {
         return responseHandlers.error(res, "Invalid comment id");
       }
 
-      // --- assume the comment was made by the user ---
+      // --- we assume the comment was made by the user ---
       // --- checking separately if it was made by the user using another query operation  will increase the request time ---
       const commentToDelete = await CommentsModel.deleteOne({
         _id: commentId,
         user: userId,
       });
 
+      // --- was there a successful  delete operation? ---
       if (commentToDelete.deletedCount === 0) {
         return responseHandlers.error(res, "Failed to delete comment");
       }
@@ -146,7 +150,7 @@ class CommentsController {
         200
       );
     } catch (error) {
-      return responseHandlers.error(res, "An error occurred", 500, error);
+      return responseHandlers.mongoError(req, res, error, COMMENTS);
     }
   }
 
@@ -165,7 +169,7 @@ class CommentsController {
 
       return responseHandlers.success(res, comments || []);
     } catch (error) {
-      return responseHandlers.error(res, "An error occurred", 500, error);
+      return responseHandlers.mongoError(req, res, error, COMMENTS);
     }
   }
 }

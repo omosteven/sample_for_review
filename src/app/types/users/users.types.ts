@@ -1,9 +1,13 @@
+import { ObjectId } from "mongoose";
+
+// --- used only in user login ---
 export interface IUserLogin {
   email: string;
 
   password: string;
 }
 
+// --- used only in user registration ---
 export interface IUserRegister {
   email: string;
 
@@ -14,6 +18,7 @@ export interface IUserRegister {
   lastName: string;
 }
 
+// --- used in update profile ---
 export interface IUser {
   firstName?: string;
 
@@ -24,6 +29,17 @@ export interface IUser {
   language?: string;
 
   picture?: string;
+}
+
+/** --- IUserId used in 
+delete account, 
+get profile, 
+delete picture, 
+deactivate account,
+**/
+
+export interface IUserId {
+  userId: ObjectId;
 }
 
 export interface IUpdatePassword {

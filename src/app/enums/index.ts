@@ -6,6 +6,7 @@ export const MODEL_NAMES = {
   COMMENTS: "Comment",
   TAGS: "Tags",
   ERROR_LOGS: "ErrorLog",
+  MEDIA: "Media",
 };
 
 export const REQUEST_METHODS = {

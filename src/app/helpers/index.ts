@@ -8,10 +8,7 @@ import { ObjectId } from "mongodb";
 
 import config from "../../config/config";
 
-import {
-  IValidatePayloadParams,
-  IValidatePayloadResponse,
-} from "../types/helpers/helpers.types";
+import { IValidatePayloadResponse } from "../types/helpers/helpers.types";
 
 class Helpers {
   // Method to generate a JWT token for a given email
@@ -70,7 +67,6 @@ class Helpers {
     }
 
     if (validators.includes("password")) {
-      console.log("not meant");
       isValid = payloads["password"]?.length >= 8;
       if (!isValid) {
         return {
@@ -84,8 +80,6 @@ class Helpers {
       isValid,
     };
   }
-
-  async mongoDBErrorHandler(mongoDBError: any) {}
 
   areHashtagsValid(hashTags: string[]): boolean {
     if (!Array.isArray(hashTags)) {
@@ -114,22 +108,17 @@ class Helpers {
     return { pageSize, currentPage, filter };
   }
 
-  isObjectIdValid(id: string): boolean {
+  isObjectIdValid(id: any): boolean {
     return ObjectId.isValid(id) && new ObjectId(id).toString() === id;
+  }
+
+  isStringEmpty(content: any): boolean {
+    if (typeof content === "string" && content.trim().length > 0) {
+      return false;
+    } else {
+      return true;
+    }
   }
 }
 
 export default Helpers;
-
-// [
-//   {
-//     payload: "email",
-//     rule: /.+\@.+\..+/,
-//     type: "REGEX",
-//   },
-//   {
-//     payload:'password',
-//     rule:'minLength'
-//   },
-
-// ]

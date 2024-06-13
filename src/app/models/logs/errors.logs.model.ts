@@ -8,8 +8,9 @@ const { USERS, ERROR_LOGS } = MODEL_NAMES;
 
 interface IErrorLog extends Document {
   errorMessage: string;
-  stackTrace: string;
+  collectionName?: string;
   userId?: string;
+  errorStack?: string;
 }
 
 const errorLogSchema = new Schema<IErrorLog>(
@@ -18,9 +19,14 @@ const errorLogSchema = new Schema<IErrorLog>(
       type: String,
       required: true,
     },
-    stackTrace: {
+
+    errorStack: {
       type: String,
-      required: true,
+    },
+
+    collectionName: {
+      type: String,
+      required: false,
     },
     userId: {
       type: ObjectId,

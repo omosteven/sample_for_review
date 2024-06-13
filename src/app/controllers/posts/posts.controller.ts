@@ -6,9 +6,13 @@ import PostsModel from "../../models/posts/posts.model";
 
 import TagsModel from "../../models/posts/tags.model";
 
-import { IPost } from "../../types/posts/posts.types";
+import { ICreatePost, IPostId, ITagName } from "../../types/posts/posts.types";
 
 import Helpers from "../../helpers";
+
+import { MODEL_NAMES } from "../../enums";
+
+const { POSTS } = MODEL_NAMES;
 
 const helpers = new Helpers();
 
@@ -23,22 +27,19 @@ class PostsController {
       canBeLiked,
       allowsComments,
       tags = [],
-    }: IPost = req.body;
+    }: ICreatePost = req.body;
     const { userId } = req.body.user;
 
     try {
-      // --- check if  the payloads pass the neccessary validations ---
-      const { isValid, errorMessage } = helpers.validatePayloads(req.body, [
-        "content",
-      ]);
-
-      if (!isValid) {
-        return responseHandlers.error(res, errorMessage);
+      // --- check if content contains value or not ---
+      if (!helpers.isStringEmpty(content)) {
+        return responseHandlers.error(res, "Content cannot be empty");
       }
 
       // --- check if tags are present in the post ---
       let hasHashTags = tags?.length > 0;
 
+      // --- validate hash tags to be sure they conform to starting with '#' keyword ---
       if (hasHashTags) {
         if (!helpers.areHashtagsValid(tags)) {
           return responseHandlers.error(res, "Invalid hash tags");
@@ -59,6 +60,7 @@ class PostsController {
       const savedPost = await newPost.save();
 
       if (hasHashTags) {
+        // --- create a promise to handle all tags write operations ---
         const tagPromises = tags.map(async (tagName: string) => {
           let tag = await TagsModel.findOneAndUpdate(
             { tagName },
@@ -73,6 +75,7 @@ class PostsController {
         savedPost.tags = tagNames;
       }
 
+      // --- save again to  make the tags reflect in the already saved  post record ----
       await savedPost.save();
 
       return responseHandlers.success(
@@ -82,7 +85,7 @@ class PostsController {
         201
       );
     } catch (error) {
-      return responseHandlers.error(res, "An error occurred", 500, error);
+      return await responseHandlers.mongoError(req, res, error, POSTS);
     }
   }
 
@@ -94,7 +97,7 @@ class PostsController {
       canBeLiked,
       allowsComments,
       tags = [],
-    }: IPost = req.body;
+    } = req.body as ICreatePost;
 
     const updateData = {
       content,
@@ -107,15 +110,15 @@ class PostsController {
 
     const { userId } = req.body.user;
 
-    const { postId }: any = req.params;
+    const { postId } = req.params as unknown as IPostId;
 
     try {
-      // --- validate the  post id  ---
+      // --- validate the post id  ---
       if (!postId || !helpers.isObjectIdValid(postId)) {
         return responseHandlers.error(res, "Invalid post id");
       }
 
-      // Check if the user is authorized to update the post
+      // Check if the user is authorized to update the post and only return madeBy for performance sake ---
       const postToUpdate = await PostsModel.findOne({ _id: postId }).select(
         "madeBy"
       );
@@ -157,6 +160,7 @@ class PostsController {
       }
 
       if (hasHashTags) {
+        // --- create a promise to handle all tags write operations ---
         const tagPromises = tags.map(async (tagName: string) => {
           let tag = await TagsModel.findOneAndUpdate(
             { tagName },
@@ -177,14 +181,14 @@ class PostsController {
         201
       );
     } catch (error) {
-      return responseHandlers.error(res, "An error occurred", 500, error);
+      return await responseHandlers.mongoError(req, res, error, POSTS);
     }
   }
 
   async deletePost(req: Request, res: Response) {
     const { userId } = req.body.user;
 
-    const { postId }: any = req.params;
+    const { postId } = req.params as unknown as IPostId;
 
     try {
       // --- validate the  post id  ---
@@ -192,16 +196,17 @@ class PostsController {
         return responseHandlers.error(res, "Invalid post id");
       }
 
-      // Check if the user is authorized to update the post
-      const postToUpdate = await PostsModel.findOne({ _id: postId }).select(
+      // --- retrive the actual post and return only the madeBy(author) and tags ---
+      const postToDelete = await PostsModel.findOne({ _id: postId }).select(
         "madeBy tags"
       );
 
-      if (!postToUpdate) {
+      if (!postToDelete) {
         return responseHandlers.error(res, "Post Not Found", 404);
       }
 
-      if (postToUpdate.madeBy.toString() !== userId) {
+      // --- convert madeBy to string and check if it is the same as the userId for authorization ---
+      if (postToDelete.madeBy.toString() !== userId) {
         return responseHandlers.error(
           res,
           "Unauthorized: User is not the author of this post",
@@ -216,9 +221,11 @@ class PostsController {
         return responseHandlers.error(res, "An error occurred", 400);
       }
 
-      const hashTags = postToUpdate.tags;
+      const hashTags = postToDelete.tags;
 
       if (hashTags.length > 0) {
+        // --- create a promise to handle all tags write operations ---
+        // --- the purpose of this part is to remove  the postId of the deleted post from each tag's posts array  ---
         const tagPromises = hashTags.map(async (tagName: string) => {
           let tag = await TagsModel.findOneAndUpdate(
             { tagName },
@@ -232,8 +239,9 @@ class PostsController {
         await Promise.all(tagPromises);
       }
 
-      // --- it might be nice to delete all comments tied to a post but these comments may be  useful as data in future ---
-
+      /** it might be nice to delete all comments tied to a post 
+      but these comments may be  useful as data in future 
+      **/
       return responseHandlers.success(
         res,
         undefined,
@@ -241,7 +249,7 @@ class PostsController {
         200
       );
     } catch (error) {
-      return responseHandlers.error(res, "An error occurred", 500, error);
+      return await responseHandlers.mongoError(req, res, error, POSTS);
     }
   }
 
@@ -253,20 +261,20 @@ class PostsController {
     );
 
     try {
-      // --- count number of records in the model
+      // --- count number of records in the collection ---
       const totalRecords = await PostsModel.countDocuments(filter);
 
       // --- retrieve the  records based  on the pagination parameters ---
       const posts = await PostsModel.find(filter)
         .skip((currentPage - 1) * pageSize)
         .limit(pageSize)
-        .sort({ createdAt: -1 })
+        .sort({ _id: -1 })
         .populate({
           path: "madeBy",
           select: "email firstName _id lastName picture",
-        }); // Adjust sorting as needed;
+        });
 
-      // --- calculate number of pages based  on  the  parameters  ---
+      // --- calculate number of pages based on the parameters  ---
       const totalPages = Math.ceil(totalRecords / pageSize);
 
       return responseHandlers.success(res, {
@@ -277,7 +285,7 @@ class PostsController {
         totalRecords,
       });
     } catch (error) {
-      return responseHandlers.error(res, "An error occurred", 500, error);
+      return await responseHandlers.mongoError(req, res, error, POSTS);
     }
   }
 
@@ -291,14 +299,14 @@ class PostsController {
     );
 
     try {
-      // --- count number of records in the model
+      // --- count number of records in the collection ---
       const totalRecords = await PostsModel.countDocuments(filter);
 
       // --- retrieve the  records based  on the pagination parameters ---
       const posts = await PostsModel.find({ madeBy: userId, ...filter })
         .skip((currentPage - 1) * pageSize)
         .limit(pageSize)
-        .sort({ createdAt: -1 })
+        .sort({ _id: -1 })
         .populate({
           path: "madeBy",
           select: "email firstName _id lastName picture",
@@ -315,12 +323,12 @@ class PostsController {
         totalRecords,
       });
     } catch (error) {
-      return responseHandlers.error(res, "An error occurred", 500, error);
+      return await responseHandlers.mongoError(req, res, error, POSTS);
     }
   }
 
   async fetchPostById(req: Request, res: Response) {
-    const { postId }: any = req.params;
+    const { postId } = req.params as unknown as IPostId;
 
     try {
       // --- validate the  post id  ---
@@ -328,6 +336,7 @@ class PostsController {
         return responseHandlers.error(res, "Invalid post id");
       }
 
+      // ---  retrive the particular post and populate its author(madeBy) key ---
       const post = await PostsModel.findById(postId).populate({
         path: "madeBy",
         select: "email firstName _id lastName picture",
@@ -339,13 +348,17 @@ class PostsController {
 
       return responseHandlers.success(res, post);
     } catch (error) {
-      return responseHandlers.error(res, "An error occurred", 500, error);
+      return await responseHandlers.mongoError(req, res, error, POSTS);
     }
   }
 
-  // --- this method handles both  like and unlike.  a post is unliked if called by a userId that  has  liked already ---
+  /**  --- 
+       * this method handles both  like and unlike.  
+       a post is unliked if called by a userId that  has  liked already 
+       ---
+  **/
   async likeAPost(req: Request, res: Response) {
-    const { postId } = req.params;
+    const { postId } = req.params as unknown as IPostId;
     const { userId } = req.body.user;
 
     try {
@@ -354,7 +367,9 @@ class PostsController {
         return responseHandlers.error(res, "Invalid post id");
       }
 
-      const post = await PostsModel.findById(postId);
+      const post = await PostsModel.findById(postId).select(
+        "canBeLiked likes noOfLikes"
+      );
 
       if (!post) {
         return responseHandlers.error(res, "Post Not Found", 404);
@@ -369,42 +384,40 @@ class PostsController {
         );
       }
 
-      // Check if the user has already liked the post
+      // --- Check if the user has already liked the post ---
       const findUserLikedIndex = post.likes.findIndex((id) => id === userId);
 
       if (findUserLikedIndex === -1) {
-        // if the user has not liked post
-        // Add the userId to the likes array and increment noOfLikes
+        // --- if the user has not liked post ---
+        // --- Add the userId to the likes array and increment noOfLikes ---
         post.likes.push(userId);
 
         post.noOfLikes++;
       } else {
-        // remove the userId from the likes array and decrement noOfLikes
+        // --- remove the userId from the likes array and decrement noOfLikes ---
         post.likes.splice(findUserLikedIndex, 1);
 
         post.noOfLikes--;
       }
 
-      // Save the updated post
+      // ---  Save the updated post ---
       await post.save();
 
       return responseHandlers.success(res, post);
     } catch (error) {
-      return responseHandlers.error(res, "An error occurred", 500, error);
+      return await responseHandlers.mongoError(req, res, error, POSTS);
     }
   }
 
   async searchPostsByTag(req: Request, res: Response) {
-    // --- retrieve the  pagination parameters
+    // --- retrieve the  pagination parameters ---
     const { pageSize, currentPage } = helpers.pagination(req, "");
 
-    const { tagName } = req.query;
+    const { tagName } = req.query as unknown as ITagName;
 
     try {
-      // const totalRecords = await PostsModel.populate("posts").countDocuments(filter);
-
-      // --- check if tag is passed or not
-      if (!tagName) {
+      // --- check if tag is passed or not ---
+      if (!helpers.isStringEmpty(tagName)) {
         return responseHandlers.error(res, "Invalid Tag");
       }
 
@@ -416,18 +429,19 @@ class PostsController {
         options: {
           skip: (currentPage - 1) * pageSize,
           limit: pageSize,
-          sort: { createdAt: -1 }, // Sorting by creation date, adjust as needed
+          sort: { _id: -1 }, //
         },
       });
 
       const { posts } = tagPost || {};
+
       return responseHandlers.success(res, {
         records: posts || [],
         currentPage,
         pageSize,
       });
     } catch (error) {
-      return responseHandlers.error(res, "An error occurred", 500, error);
+      return await responseHandlers.mongoError(req, res, error, POSTS);
     }
   }
 }

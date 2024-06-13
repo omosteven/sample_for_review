@@ -1,6 +1,5 @@
-import { ObjectId } from "mongoose";
-
-export interface IPost {
+// --- used in create and edit post ----
+export interface ICreatePost {
   content: string;
   mediaUrl?: string;
   mediaType?: string;
@@ -9,6 +8,21 @@ export interface IPost {
   tags?: string[];
 }
 
-export interface IGetPost {
-  postId: ObjectId;
+// --- used in edit post, delete post, fetch post by id, like/unlike post,
+export interface IPostId {
+  postId: string;
+}
+
+export interface ITagName {
+  tagName: string;
+}
+
+// --- used in add comment, edit comment ---
+export interface IComment {
+  content: string;
+}
+
+// --- used in edit comment, delete comment ---
+export interface ICommentId {
+  commentId: string;
 }

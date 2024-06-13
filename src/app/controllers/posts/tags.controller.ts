@@ -6,6 +6,10 @@ import TagsModel from "../../models/posts/tags.model";
 
 import Helpers from "../../helpers";
 
+import { MODEL_NAMES } from "../../enums";
+
+const { TAGS } = MODEL_NAMES;
+
 const responseHandlers = new ResponseHandler();
 
 const helpers = new Helpers();
@@ -15,11 +19,12 @@ class TagsController {
     const { filter } = helpers.pagination(req, "tagName");
 
     try {
+      // --- fetch all tags  with the filter and do not return their posts  ---
       const allTags = await TagsModel.find(filter).select("-posts");
 
       return responseHandlers.success(res, allTags);
     } catch (error) {
-      return responseHandlers.error(res, "An error occurred", 500, error);
+      return await responseHandlers.mongoError(req, res, error, TAGS);
     }
   }
 }
